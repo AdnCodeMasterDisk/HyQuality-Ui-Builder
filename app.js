@@ -1113,6 +1113,7 @@ async function initApp() {
       }
     );
 
+    emmetMonaco.emmetHTML(monaco);
     registerHtmlSnippets();
     renderComponents();
     renderComponentCategoryButtons();
