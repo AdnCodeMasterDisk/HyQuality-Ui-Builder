@@ -187,6 +187,14 @@ body::-webkit-scrollbar {
   margin-top: 0px;
 }
 
+#mobileIframeJs {
+  width: 100%;
+  height: calc(100% - 0px);
+  border: none;
+  background: rgb(255, 255, 255);
+  margin-top: 0px;
+}
+
 /* iframe preview */
 #desktopPreview {
   width: 100%;

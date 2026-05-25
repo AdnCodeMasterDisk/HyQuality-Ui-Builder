@@ -14,29 +14,29 @@ require.config({
 const initialCode = `<!DOCTYPE html>
 <html lang="es">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tittle</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tittle</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&"/>
-    <style>
-      .material-symbols-outlined {
-        font-variation-settings:
-          'FILL' 0,
-          'wght' 300,
-          'GRAD' -25,
-          'opsz' 20;
-      }
-    </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&"/>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 300,
+        'GRAD' -25,
+        'opsz' 20;
+    }
+  </style>
   </head>
 
   <body>
-   
+    <h1 class="text-center bg-c2 mb-0 mt-0" style="height: 50px">HiQuality</h1>
   </body>
 </html>`;
 
@@ -233,6 +233,24 @@ function updateIframeContentSmooth(iframe, html) {
   });
 }
 
+function updateIframeContentSmoothJS(iframe, html) {
+  if (!iframe) return;
+
+  const iframeWindow = iframe.contentWindow;
+  const iframeDocument = iframe.contentDocument || iframeWindow.document;
+
+  const oldScrollX = iframeWindow.scrollX || 0;
+  const oldScrollY = iframeWindow.scrollY || 0;
+
+  iframeDocument.open();
+  iframe.srcdoc = html;
+  iframeDocument.close();
+
+  requestAnimationFrame(() => {
+    iframeWindow.scrollTo(oldScrollX, oldScrollY);
+  });
+}
+
 function updatePreview() {
   if (!window.editor) return;
 
@@ -241,6 +259,7 @@ function updatePreview() {
 
   updateIframeContentSmooth(desktopPreview, finalHTML);
   updateIframeContentSmooth(mobileIframe, finalHTML);
+  updateIframeContentSmoothJS(mobileIframeJs, finalHTML);
 }
 
 function schedulePreviewUpdate() {
@@ -248,15 +267,91 @@ function schedulePreviewUpdate() {
 
   previewTimer = setTimeout(() => {
     updatePreview();
-  }, 80);
+  }, 0);
 }
 
 // Monaco snippets
 function registerHtmlSnippets() {
   monaco.languages.registerCompletionItemProvider('html', {
-    triggerCharacters: ['<', '"', ' ', 'h', 'd', 's', 'p', 'b', 'i', 'a'],
+    triggerCharacters: [
+      '<',
+      '"',
+      ' ',
+      'h',
+      'd',
+      's',
+      'p',
+      'b',
+      'i',
+      'a',
+      '.',
+      ':',
+      ';',
+      'w',
+      'm',
+    ],
 
-    provideCompletionItems: function () {
+    provideCompletionItems: function (model, position) {
+      const line = model.getLineContent(position.lineNumber);
+      const textBeforeCursor = line.substring(0, position.column - 1);
+
+      const insideStyle = /style\s*=\s*"[^"]*$/.test(textBeforeCursor);
+
+      if (insideStyle) {
+        return {
+          suggestions: [
+            {
+              label: 'width',
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: 'width: $1;',
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: 'CSS property',
+            },
+            {
+              label: 'height',
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: 'height: $1;',
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: 'CSS property',
+            },
+            {
+              label: 'background-ima',
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: 'background-image: url($1);',
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: 'CSS property',
+            },
+            {
+              label: 'margin',
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: 'margin: $1;',
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: 'CSS property',
+            },
+            {
+              label: 'border-radius',
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: 'border-radius: $1;',
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: 'CSS property',
+            },
+            {
+              label: 'position',
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: 'position: $1;',
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: 'CSS property',
+            },
+          ],
+        };
+      }
+
       const tags = [
         'div',
         'section',
@@ -483,8 +578,39 @@ function registerHtmlSnippets() {
         detail: 'HiQuality class',
       }));
 
+      const customSnippets = [
+        {
+          label: 'sty',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: 'style="$1"',
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: 'Crear style',
+        },
+        {
+          label: 'id',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: 'id="$1"',
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: 'Crear id',
+        },
+        {
+          label: 'src',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: 'src="$1"',
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: 'Crear src',
+        },
+      ];
+
       return {
-        suggestions: [...tagSuggestions, ...classSuggestions],
+        suggestions: [
+          ...tagSuggestions,
+          ...classSuggestions,
+          ...customSnippets,
+        ],
       };
     },
   });

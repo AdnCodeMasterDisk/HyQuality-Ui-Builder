@@ -3,9 +3,11 @@ const codeSection = document.querySelector('.SectionCode');
 const resizeBar = document.querySelector('#resizeBar');
 
 const mobilePreview = document.querySelector('.SectionMobilePreview');
+const mobilePreviewJs = document.querySelector('#mobilePreviewJs');
 
 const buttonTowViews = document.querySelector('#buttonTowViews');
 const buttonMobile = document.querySelector('#buttonMobile');
+const buttonMobileJs = document.querySelector('#buttonMobileJs');
 const buttonCode = document.querySelector('#buttonCode');
 const buttonDesk = document.querySelector('#buttonDesk');
 
@@ -39,6 +41,12 @@ buttonTowViews.addEventListener('click', () => {
 });
 
 buttonMobile.addEventListener('click', () => {
+  mobilePreview.classList.toggle('hideMobile');
+  mobilePreviewJs.classList.toggle('hideMobile');
+});
+
+buttonMobileJs.addEventListener('click', () => {
+  mobilePreviewJs.classList.toggle('hideMobile');
   mobilePreview.classList.toggle('hideMobile');
 });
 
