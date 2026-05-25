@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Ui Builder HyQuality</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="HyQuality.css" />
+
+    <script src="./monaco/min/vs/loader.js"></script>
+  </head>
+  <body>
+    <!--menu tools-->
+    <section class="SectionTools">
+      <button id="buttonMobile" style="margin-top: 20px">
+        <span class="material-symbols-outlined"> mobile_2 </span>
+      </button>
+
+      <!--Muestra SectionCode y oculta SectionDeskPreview, resizeBar -->
+      <button id="buttonCode">
+        <span class="material-symbols-outlined"> code </span>
+      </button>
+
+      <!--Muestra SectionDeskPreview, resizeBar y SectionCode-->
+      <button id="buttonTowViews">
+        <span class="material-symbols-outlined"> bottom_sheets </span>
+      </button>
+
+      <!--Muestra SectionDeskPreview y oculta SectionCode, resizeBar -->
+      <button id="buttonDesk">
+        <span class="material-symbols-outlined"> computer </span>
+      </button>
+
+      <!--Elimina la clase hideClasspiker de app-shell  -->
+      <button id="buttonPickerShow">
+        <span class="material-symbols-outlined"> new_label </span>
+      </button>
+
+      <!--Elimina la clase hideComponents de componets  -->
+      <button id="buttonComponet">
+        <span class="material-symbols-outlined"> photo_prints </span>
+      </button>
+
+      <!--Elimina la clase hideTheme de ThemeEditor  -->
+      <button id="buttonTheme">
+        <span class="material-symbols-outlined"> format_paint </span>
+      </button>
+
+      <!--Elimina la clase hideAdd de Addcomponent  -->
+      <button id="buttonAdd">
+        <span class="material-symbols-outlined"> add_circle </span>
+      </button>
+
+      <!--Descarga todo el contendio html del editor -->
+      <button id="buttonDownload">
+        <span class="material-symbols-outlined"> download </span>
+      </button>
+
+      <!--Descarga todo el contendido de HiQuality.css -->
+      <button id="buttonCssDownload">
+        <span class="material-symbols-outlined"> arrow_circle_down </span>
+      </button>
+
+      <!--MAterial icons  -->
+      <button>
+        <a
+          href="https://fonts.google.com/icons?selected=Material+Symbols+Outlined:palette:FILL@0;wght@400;GRAD@0;opsz@24&icon.size=24&icon.color=%23e3e3e3"
+          target="blank"
+        >
+          <span class="material-symbols-outlined" style="font-size: 30px">
+            apps
+          </span>
+        </a>
+      </button>
+
+      <!--Google fonts  -->
+      <button>
+        <a href="https://fonts.google.com" target="blank">
+          <span class="material-symbols-outlined" style="font-size: 30px">
+            brand_family
+          </span>
+        </a>
+      </button>
+
+      <!--Gradient css  -->
+      <button>
+        <a href="https://cssgradient.io" target="blank">
+          <span class="material-symbols-outlined" style="font-size: 30px">
+            colors
+          </span>
+        </a>
+      </button>
+    </section>
+
+    <!--mobile preview-->
+    <section class="SectionDeskPreview">
+      <iframe id="desktopPreview"></iframe>
+    </section>
+
+    <section class="SectionMobilePreview" id="mobilePreview">
+      <div class="mobile-screen">
+        <iframe id="mobileIframe"></iframe>
+      </div>
+    </section>
+
+    <div id="resizeBar"></div>
+
+    <section class="SectionCode">
+      <div id="monacoEditor"></div>
+    </section>
+
+    <!--toas-->
+    <div id="toast" class="toast">
+      <span id="toastMessage"> Ui copiado a portapales </span>
+    </div>
+
+    <!-- Class piker -->
+    <section class="app-shell hideClasspiker">
+      <section class="contentclaspiker">
+        <section class="app-hero">
+          <article class="app-card">
+            <p class="text-sm weight-bold mb-2">Clases seleccionadas</p>
+            <textarea class="output-box" data-output readonly></textarea>
+
+            <div class="toolbar mt-4">
+              <button class="btn btn-primary" type="button" data-copy="classes">
+                Copiar clases
+              </button>
+              <button class="btn btn-soft" type="button" data-copy="html">
+                Copiar HTML
+              </button>
+              <button class="btn btn-soft" type="button" data-clear>
+                Limpiar
+              </button>
+            </div>
+
+            <p class="text-sm weight-bold mt-5 mb-2">HTML generado</p>
+            <textarea class="output-box" data-html-output readonly></textarea>
+          </article>
+        </section>
+
+        <section class="app-card mb-6">
+          <div class="toolbar">
+            <input
+              class="search-input mt-4"
+              type="search"
+              placeholder="Buscar clase: flex, grid, text, bg, p-4..."
+              data-search
+            />
+          </div>
+          <textarea id="frameworkCss" style="display: none">
+          css
+        </textarea
+          >
+        </section>
+
+        <p class="tittle">Elementos html:</p>
+        <div id="htmlElements" class="class-grid-html"></div>
+        <p class="tittle">Clases CSS:</p>
+        <section class="class-grid" data-class-container></section>
+      </section>
+    </section>
+
+    <!-- Copia las clases y elementos del picker y oculta toda la seccion de class piker -->
+    <div class="floating-actions">
+      <button
+        class="hideClasspiker btncopyPickerclass"
+        type="button"
+        data-copy="html"
+      >
+        <span class="material-symbols-outlined" style="font-size: 30px">
+          check_circle
+        </span>
+      </button>
+    </div>
+
+    <!-- Componets -->
+    <section class="library-app hideComponent">
+      <aside class="library-sidebar">
+        <input
+          type="text"
+          id="searchInputComponent"
+          placeholder="Buscar componente..."
+        />
+
+        <h2>COMPONENTES</h2>
+
+        <button class="category-btn active" data-category="all">All</button>
+        <button class="category-btn" data-category="layers">Layer</button>
+        <button class="category-btn" data-category="typography">
+          Typography
+        </button>
+        <button class="category-btn" data-category="colors">Color</button>
+        <button class="category-btn" data-category="button">Button</button>
+        <button class="category-btn" data-category="icons">Icons</button>
+        <button class="category-btn" data-category="image">Image</button>
+        <button class="category-btn" data-category="video">Video</button>
+        <button class="category-btn" data-category="inputs">Inputs</button>
+        <button class="category-btn" data-category="topbar">Topbar</button>
+        <button class="category-btn" data-category="buttonbar">
+          Button bar
+        </button>
+        <button class="category-btn" data-category="drawer">Drawer</button>
+        <button class="category-btn" data-category="form">Form</button>
+        <button class="category-btn" data-category="slider">Slider</button>
+        <button class="category-btn" data-category="headers">Header</button>
+        <button class="category-btn" data-category="menu">Menu</button>
+        <button class="category-btn" data-category="actions">Actions</button>
+        <button class="category-btn" data-category="banner">Banner</button>
+        <button class="category-btn" data-category="gallery">Gallery</button>
+        <button class="category-btn" data-category="cards">Card</button>
+        <button class="category-btn" data-category="articles">Article</button>
+        <button class="category-btn" data-category="testimonies">
+          Testimonies
+        </button>
+        <button class="category-btn" data-category="team">Team</button>
+        <button class="category-btn" data-category="redes">Redes</button>
+        <button class="category-btn" data-category="contact">Contact</button>
+        <button class="category-btn" data-category="maps">Maps</button>
+        <button class="category-btn" data-category="footers">Footer</button>
+        <button class="category-btn" data-category="copyrider">
+          Copy rider
+        </button>
+      </aside>
+
+      <section class="library-content">
+        <section id="componentsGrid" class="components-grid"></section>
+      </section>
+    </section>
+
+    <!--ThemeEditor-->
+    <section class="ThemeEditor hideTheme" id="ThemeEditor">
+      <h2 id="paletteTitle">Palettes</h2>
+      <div id="paletteSelector" class="hide"></div>
+      <section id="themeEditor"></section>
+      <button id="copyCssBtn" class="SaveTheme">Guardar Thema</button>
+      <textarea id="cssOutput"></textarea>
+    </section>
+
+    <!--Add Components -->
+
+    <section class="AddComponent hideAddComponent">
+      <div class="save-component-panel">
+        <input id="componentNameInput" placeholder="Nombre componente" />
+
+        <input type="hidden" id="componentCategoryInput" />
+
+        <div id="componentCategoryGrid" class="component-category-grid"></div>
+
+        <textarea
+          id="componentHtmlInput"
+          placeholder="HTML del componente"
+        ></textarea>
+
+        <button id="saveComponentBtn">Guardar componente</button>
+
+        <button id="exportComponentsBtn">Exportar componentes</button>
+
+        <button id="clearComponentsBtn">Clear components</button>
+      </div>
+    </section>
+
+    <!-- Scripts -->
+    <script type="module" src="screenmobile.js"></script>
+    <script type="module" src="resizer.js"></script>
+    <script type="module" src="tools.js"></script>
+    <script type="module" src="classpiker.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

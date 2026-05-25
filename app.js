@@ -1,0 +1,1014 @@
+import components from './components-data.js';
+import { palettes } from './palettes.js';
+
+const MONACO_STORAGE_KEY = 'hyqualityMonacoCode';
+const THEME_STORAGE_KEY = 'hyqualityThemeVariables';
+const CUSTOM_COMPONENTS_KEY = 'hyqualityCustomComponents';
+
+require.config({
+  paths: {
+    vs: './monaco/min/vs',
+  },
+});
+
+const initialCode = `<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tittle</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&"
+    />
+
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          'FILL' 0,
+          'wght' 300,
+          'GRAD' -25,
+          'opsz' 20;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1 class="text-center bg-c2 mb-0 mt-0" style="height: 50px">HiQuality</h1>
+  </body>
+</html>`;
+
+// DOM
+const desktopPreview = document.querySelector('#desktopPreview');
+const mobileIframe = document.querySelector('#mobileIframe');
+
+const buttonDownload = document.querySelector('#buttonDownload');
+const buttonCssDownload = document.querySelector('#buttonCssDownload');
+
+const toast = document.querySelector('#toast');
+const toastMessage = document.querySelector('#toastMessage');
+
+const grid = document.querySelector('#componentsGrid');
+const searchInputComponent = document.querySelector('#searchInputComponent');
+const categoryButtons = document.querySelectorAll('.category-btn');
+
+const themeEditor = document.querySelector('#themeEditor');
+const paletteSelector = document.querySelector('#paletteSelector');
+const copyCssBtn = document.querySelector('#copyCssBtn');
+const paletteTitle = document.querySelector('#paletteTitle');
+
+const componentNameInput = document.querySelector('#componentNameInput');
+const componentHtmlInput = document.querySelector('#componentHtmlInput');
+const componentCategoryInput = document.querySelector(
+  '#componentCategoryInput'
+);
+const componentCategoryGrid = document.querySelector('#componentCategoryGrid');
+
+const saveComponentBtn = document.querySelector('#saveComponentBtn');
+const exportComponentsBtn = document.querySelector('#exportComponentsBtn');
+const clearComponentsBtn = document.querySelector('#clearComponentsBtn');
+
+const addComponentPanel = document.querySelector('.AddComponent');
+
+// State
+let frameworkCSS = '';
+let previewTimer = null;
+let toastTimer = null;
+let currentCategory = 'all';
+
+const hiddenPatterns = [
+  /^--grad\d+$/,
+  /^--shadow-.+$/,
+  /^--border-.+$/,
+  /^--line-.+$/,
+];
+
+// Load CSS
+async function loadFrameworkCSS() {
+  const response = await fetch('./HyQuality.css');
+
+  if (!response.ok) {
+    throw new Error('No se pudo cargar HyQuality.css');
+  }
+
+  return await response.text();
+}
+
+// Toast
+function showToast(message = '') {
+  if (!toast || !toastMessage) return;
+
+  clearTimeout(toastTimer);
+
+  toastMessage.textContent = message;
+  toast.classList.add('show');
+
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2000);
+}
+
+// Monaco localStorage
+function saveEditorContent() {
+  if (!window.editor) return;
+
+  const code = window.editor.getValue();
+
+  localStorage.setItem(MONACO_STORAGE_KEY, code);
+}
+
+function loadEditorContent() {
+  return localStorage.getItem(MONACO_STORAGE_KEY) || initialCode;
+}
+
+// Theme localStorage
+function getSavedThemeVariables() {
+  try {
+    return JSON.parse(localStorage.getItem(THEME_STORAGE_KEY)) || {};
+  } catch (error) {
+    console.warn('No se pudo leer el theme guardado:', error);
+    return {};
+  }
+}
+
+function saveThemeVariable(variableName, value) {
+  const savedTheme = getSavedThemeVariables();
+
+  savedTheme[variableName] = value;
+
+  localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(savedTheme));
+}
+
+function saveCurrentTheme() {
+  const inputs = document.querySelectorAll('[data-variable]');
+  const theme = {};
+
+  inputs.forEach((input) => {
+    theme[input.dataset.variable] = input.value;
+  });
+
+  localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
+
+  themeEditor?.classList.add('hideTheme');
+  paletteSelector?.classList.add('hide');
+
+  showToast('Theme guardado');
+}
+
+function applySavedThemeVariables() {
+  const savedTheme = getSavedThemeVariables();
+
+  Object.entries(savedTheme).forEach(([variable, value]) => {
+    updateCssVariable(variable, value, false);
+
+    const input = document.querySelector(`[data-variable="${variable}"]`);
+
+    if (input) {
+      input.value = value;
+
+      const group = input.closest('.editor-group');
+      const preview = group?.querySelector('.color-box');
+
+      if (preview && isColor(value)) {
+        preview.style.background = value;
+      }
+    }
+  });
+
+  updatePreview();
+}
+
+// Preview
+function injectFrameworkCSS(html) {
+  const frameworkStyle = `
+    <style id="hyquality-framework">
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      ${frameworkCSS}
+    </style>
+  `;
+
+  if (html.includes('</head>')) {
+    return html.replace('</head>', `${frameworkStyle}</head>`);
+  }
+
+  return `
+    <!DOCTYPE html>
+    <html lang="es">
+      <head>
+        ${frameworkStyle}
+      </head>
+      <body>
+        ${html}
+      </body>
+    </html>
+  `;
+}
+
+function updateIframeContentSmooth(iframe, html) {
+  if (!iframe) return;
+
+  const iframeWindow = iframe.contentWindow;
+  const iframeDocument = iframe.contentDocument || iframeWindow.document;
+
+  const oldScrollX = iframeWindow.scrollX || 0;
+  const oldScrollY = iframeWindow.scrollY || 0;
+
+  iframeDocument.open();
+  iframeDocument.write(html);
+  iframeDocument.close();
+
+  requestAnimationFrame(() => {
+    iframeWindow.scrollTo(oldScrollX, oldScrollY);
+  });
+}
+
+function updatePreview() {
+  if (!window.editor) return;
+
+  const userCode = window.editor.getValue();
+  const finalHTML = injectFrameworkCSS(userCode);
+
+  updateIframeContentSmooth(desktopPreview, finalHTML);
+  updateIframeContentSmooth(mobileIframe, finalHTML);
+}
+
+function schedulePreviewUpdate() {
+  clearTimeout(previewTimer);
+
+  previewTimer = setTimeout(() => {
+    updatePreview();
+  }, 80);
+}
+
+// Monaco snippets
+function registerHtmlSnippets() {
+  monaco.languages.registerCompletionItemProvider('html', {
+    triggerCharacters: ['<', '"', ' ', 'h', 'd', 's', 'p', 'b', 'i', 'a'],
+
+    provideCompletionItems: function () {
+      const tags = [
+        'div',
+        'section',
+        'article',
+        'header',
+        'main',
+        'footer',
+        'nav',
+        'h1',
+        'h2',
+        'h3',
+        'p',
+        'span',
+        'button',
+        'input',
+        'form',
+        'label',
+        'ul',
+        'li',
+        'a',
+        'img',
+      ];
+
+      const frameworkClasses = [
+        'w-auto',
+        'w-full',
+        'w-screen',
+        'w-10',
+        'w-20',
+        'w-30',
+        'w-40',
+        'w-50',
+        'w-60',
+        'w-70',
+        'w-80',
+        'w-90',
+
+        'h-auto',
+        'h-full',
+        'h-screen',
+
+        'container',
+
+        'd-block',
+        'd-inline',
+        'd-inline-block',
+        'd-flex',
+        'd-grid',
+        'd-none',
+
+        'flex-row',
+        'flex-col',
+        'mobile-flex-col',
+
+        'justify-start',
+        'justify-center',
+        'justify-end',
+        'justify-between',
+        'justify-around',
+
+        'items-start',
+        'items-center',
+        'items-end',
+        'items-stretch',
+
+        'flex-wrap',
+        'flex-nowrap',
+
+        ...Array.from({ length: 16 }, (_, i) => `gap-${i + 1}`),
+
+        'grid-1',
+        'grid-2',
+        'grid-3',
+        'grid-4',
+        'grid-6',
+        'grid-8',
+        'mobile-grid',
+
+        ...Array.from({ length: 17 }, (_, i) => `p-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `pt-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `pb-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `pl-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `pr-${i}`),
+
+        ...Array.from({ length: 17 }, (_, i) => `m-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `mt-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `mb-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `ml-${i}`),
+        ...Array.from({ length: 17 }, (_, i) => `mr-${i}`),
+
+        'mx-auto',
+
+        'text-left',
+        'text-center',
+        'text-right',
+
+        'weight-light',
+        'weight-regular',
+        'weight-medium',
+        'weight-semibold',
+        'weight-bold',
+
+        'font-italic',
+        'font-main',
+
+        ...Array.from({ length: 16 }, (_, i) => `fs-${i + 1}`),
+
+        'line-tight',
+        'line-base',
+        'line-loose',
+
+        ...Array.from({ length: 16 }, (_, i) => `t-c${i + 1}`),
+        ...Array.from({ length: 16 }, (_, i) => `bg-c${i + 1}`),
+
+        'grad1',
+        'grad2',
+
+        'bg-image',
+        'bg-repeat',
+        'bg-no-repeat',
+        'bg-repeat-x',
+        'bg-repeat-y',
+
+        'bg-cover',
+        'bg-contain',
+        'bg-auto',
+
+        'bg-center',
+        'bg-top',
+        'bg-bottom',
+        'bg-left',
+        'bg-right',
+
+        'bg-top-left',
+        'bg-top-right',
+        'bg-bottom-left',
+        'bg-bottom-right',
+
+        'bg-fixed',
+        'bg-scroll',
+
+        'bg-blend-multiply',
+        'bg-blend-overlay',
+        'bg-blend-screen',
+
+        'bg-parallax',
+
+        'border',
+        'border-dark',
+        'border-none',
+
+        'radius-sm',
+        'radius-md',
+        'radius-lg',
+        'radius-xl',
+        'radius-full',
+
+        'shadow-sm',
+        'shadow-md',
+        'shadow-lg',
+
+        'opacity-100',
+        'opacity-80',
+        'opacity-70',
+        'opacity-50',
+        'opacity-30',
+
+        'pos-relative',
+        'pos-absolute',
+        'pos-fixed',
+        'pos-sticky',
+
+        'z-1',
+        'z-10',
+        'z-50',
+        'z-100',
+        'z-200',
+
+        'overflow-hidden',
+        'overflow-auto',
+
+        'cursor-pointer',
+      ];
+
+      const uniqueFrameworkClasses = [...new Set(frameworkClasses)];
+
+      const tagSuggestions = tags.map((tag) => {
+        if (tag === 'img') {
+          return {
+            label: tag,
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: '<img class="$1" src="$2" alt="$3" />',
+            insertTextRules:
+              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Crear <img> con class',
+          };
+        }
+
+        if (tag === 'input') {
+          return {
+            label: tag,
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: '<input class="$1" type="$2" placeholder="$3" />',
+            insertTextRules:
+              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Crear <input> con class',
+          };
+        }
+
+        return {
+          label: tag,
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: `<${tag} class="$1">$2</${tag}>`,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: `Crear <${tag}> con class`,
+        };
+      });
+
+      const classSuggestions = uniqueFrameworkClasses.map((cls) => ({
+        label: cls,
+        kind: monaco.languages.CompletionItemKind.Variable,
+        insertText: cls,
+        detail: 'HiQuality class',
+      }));
+
+      return {
+        suggestions: [...tagSuggestions, ...classSuggestions],
+      };
+    },
+  });
+}
+
+// Copy / download
+async function copyEditorCode() {
+  if (!window.editor) return;
+
+  try {
+    const htmlContent = window.editor.getValue();
+
+    await navigator.clipboard.writeText(htmlContent);
+
+    showToast('HTML copiado');
+  } catch (error) {
+    console.warn(error);
+    showToast('No se pudo copiar el HTML');
+  }
+}
+
+async function copyFrameworkCSS() {
+  try {
+    await navigator.clipboard.writeText(frameworkCSS);
+
+    showToast('CSS copiado con el theme aplicado');
+  } catch (error) {
+    console.warn(error);
+    showToast('Error al copiar CSS');
+  }
+}
+
+buttonDownload?.addEventListener('click', copyEditorCode);
+buttonCssDownload?.addEventListener('click', copyFrameworkCSS);
+
+// Components fixed + custom
+function getSavedComponents() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_COMPONENTS_KEY)) || [];
+  } catch (error) {
+    console.warn('No se pudieron leer los componentes:', error);
+    return [];
+  }
+}
+
+function saveComponents(list) {
+  localStorage.setItem(CUSTOM_COMPONENTS_KEY, JSON.stringify(list));
+}
+
+function renderComponents() {
+  if (!grid || !searchInputComponent) return;
+
+  const searchValue = searchInputComponent.value.toLowerCase().trim();
+
+  const allComponents = [...components, ...getSavedComponents()];
+
+  const filteredComponents = allComponents.filter((component) => {
+    const matchCategory =
+      currentCategory === 'all' || component.category === currentCategory;
+
+    const matchSearch =
+      component.name.toLowerCase().includes(searchValue) ||
+      component.category.toLowerCase().includes(searchValue);
+
+    return matchCategory && matchSearch;
+  });
+
+  grid.innerHTML = '';
+
+  filteredComponents.forEach((component) => {
+    const card = document.createElement('article');
+    card.className = 'component-card';
+
+    card.innerHTML = `
+      <h3>${component.name}</h3>
+      <div class="component-preview">
+        ${component.html}
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      copyComponent(component.html);
+    });
+
+    grid.appendChild(card);
+  });
+
+  if (filteredComponents.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        No se encontraron componentes.
+      </div>
+    `;
+  }
+}
+
+async function copyComponent(html) {
+  const cleanHtml = html.trim();
+
+  try {
+    await navigator.clipboard.writeText(cleanHtml);
+
+    const libraryApp = document.querySelector('.library-app');
+
+    if (libraryApp) {
+      libraryApp.classList.add('hideComponent');
+    }
+
+    showToast('Componente copiado');
+  } catch (error) {
+    console.warn('No se pudo copiar:', error);
+    showToast('No se pudo copiar el componente');
+  }
+}
+
+categoryButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    categoryButtons.forEach((btn) => btn.classList.remove('active'));
+
+    button.classList.add('active');
+
+    currentCategory = button.dataset.category || 'all';
+
+    renderComponents();
+  });
+});
+
+searchInputComponent?.addEventListener('input', renderComponents);
+
+// Component creator
+function renderComponentCategoryButtons() {
+  if (!componentCategoryGrid || !componentCategoryInput) return;
+
+  componentCategoryGrid.innerHTML = '';
+
+  const buttons = document.querySelectorAll('.category-btn');
+
+  buttons.forEach((button) => {
+    const category = button.dataset.category;
+
+    if (!category || category === 'all') return;
+
+    const categoryButton = document.createElement('button');
+
+    categoryButton.type = 'button';
+    categoryButton.className = 'component-type-btn';
+    categoryButton.dataset.category = category;
+    categoryButton.textContent = button.textContent.trim();
+
+    categoryButton.addEventListener('click', () => {
+      componentCategoryInput.value = category;
+
+      document.querySelectorAll('.component-type-btn').forEach((btn) => {
+        btn.classList.remove('active');
+      });
+
+      categoryButton.classList.add('active');
+    });
+
+    componentCategoryGrid.appendChild(categoryButton);
+  });
+
+  const firstButton = componentCategoryGrid.querySelector(
+    '.component-type-btn'
+  );
+
+  if (firstButton) {
+    firstButton.classList.add('active');
+    componentCategoryInput.value = firstButton.dataset.category;
+  }
+}
+
+function saveNewComponent() {
+  if (!componentNameInput || !componentHtmlInput || !componentCategoryInput) {
+    showToast('Faltan campos del componente');
+    return;
+  }
+
+  const name = componentNameInput.value.trim();
+  const html = componentHtmlInput.value.trim();
+  const category = componentCategoryInput.value;
+
+  if (!html) {
+    showToast('Agrega HTML');
+    return;
+  }
+
+  const savedComponents = getSavedComponents();
+
+  const component = {
+    id: 'custom-' + Date.now(),
+    name: name || 'Componente',
+    category: category || 'custom',
+    html,
+  };
+
+  savedComponents.push(component);
+
+  saveComponents(savedComponents);
+
+  renderComponents();
+
+  componentNameInput.value = '';
+  componentHtmlInput.value = '';
+
+  addComponentPanel?.classList.add('hideAddComponent');
+
+  showToast('Componente guardado');
+}
+
+function exportComponents() {
+  const customComponents = getSavedComponents();
+
+  const content = customComponents
+    .map(
+      (component) => `{
+    id: '${component.id}',
+    name: '${component.name}',
+    category: '${component.category}',
+    html: \`${component.html}\`,
+  },`
+    )
+    .join('\n\n');
+
+  navigator.clipboard.writeText(content);
+  addComponentPanel?.classList.add('hideAddComponent');
+  showToast('Componentes exportados');
+}
+
+function clearSavedComponents() {
+  localStorage.removeItem(CUSTOM_COMPONENTS_KEY);
+
+  renderComponents();
+
+  showToast('Componentes eliminados');
+}
+
+saveComponentBtn?.addEventListener('click', saveNewComponent);
+exportComponentsBtn?.addEventListener('click', exportComponents);
+clearComponentsBtn?.addEventListener('click', clearSavedComponents);
+
+// Theme editor
+function getRootVariables(css) {
+  const rootMatch = css.match(/:root\s*{([\s\S]*?)}/);
+
+  if (!rootMatch) return [];
+
+  const rootContent = rootMatch[1];
+
+  const variables = [...rootContent.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)];
+
+  return variables.map((item) => ({
+    name: item[1],
+    value: item[2].trim(),
+  }));
+}
+
+function isColor(value) {
+  return /^#([0-9A-F]{3}){1,2}$/i.test(value);
+}
+
+function shouldHideVariable(name) {
+  return hiddenPatterns.some((pattern) => pattern.test(name));
+}
+
+function getLabelName(name) {
+  return name
+    .replace('--', '')
+    .replace(/^c(\d+)$/, 'Color fondo $1')
+    .replace(/^ct(\d+)$/, 'Color texto $1')
+    .replace(/^fs-(\d+)$/, 'Tamaño letra $1')
+    .replace(/^fsm-(\d+)$/, 'Tamaño móvil $1')
+    .replace(/^space-(\d+)$/, 'Espacio $1')
+    .replace(/^radius-(.+)$/, 'Radio $1')
+    .replace('font-main', 'Fuente')
+    .replace('container', 'Contenedor');
+}
+
+function createEditorSection(title) {
+  const section = document.createElement('section');
+  section.className = 'editor-section';
+
+  const heading = document.createElement('h2');
+  heading.textContent = title;
+
+  const content = document.createElement('div');
+  content.className = 'editor-section-content';
+
+  section.append(heading, content);
+
+  return {
+    section,
+    content,
+  };
+}
+
+function createEditorItem(variable) {
+  const group = document.createElement('div');
+  group.className = 'editor-group';
+
+  const label = document.createElement('label');
+  label.textContent = getLabelName(variable.name);
+
+  const preview = document.createElement('div');
+  preview.className = 'color-box';
+
+  const input = document.createElement('input');
+  input.value = variable.value;
+  input.dataset.variable = variable.name;
+  input.type = isColor(variable.value) ? 'color' : 'text';
+
+  if (isColor(variable.value)) {
+    preview.style.background = variable.value;
+  } else {
+    preview.style.display = 'none';
+  }
+
+  input.addEventListener('input', updateVariable);
+
+  group.append(label, preview, input);
+
+  return group;
+}
+
+function renderEditor(variables) {
+  if (!themeEditor) return;
+
+  themeEditor.innerHTML = '';
+
+  const colorsGroup = createEditorSection('Colores de fondo');
+  const textColorsGroup = createEditorSection('Colores de texto');
+  const textSizesGroup = createEditorSection('Tamaños de letra');
+  const spacingGroup = createEditorSection('Espaciados');
+  const othersGroup = createEditorSection('Otros');
+
+  variables.forEach((variable) => {
+    if (shouldHideVariable(variable.name)) return;
+
+    const item = createEditorItem(variable);
+
+    if (/^--c\d+$/.test(variable.name)) {
+      colorsGroup.content.appendChild(item);
+    } else if (/^--ct\d+$/.test(variable.name)) {
+      textColorsGroup.content.appendChild(item);
+    } else if (
+      /^--fs-\d+$/.test(variable.name) ||
+      /^--fsm-\d+$/.test(variable.name)
+    ) {
+      textSizesGroup.content.appendChild(item);
+    } else if (/^--space-\d+$/.test(variable.name)) {
+      spacingGroup.content.appendChild(item);
+    } else {
+      othersGroup.content.appendChild(item);
+    }
+  });
+
+  themeEditor.append(
+    colorsGroup.section,
+    textColorsGroup.section,
+    textSizesGroup.section,
+    spacingGroup.section,
+    othersGroup.section
+  );
+}
+
+function updateCssVariable(variableName, value, refreshPreview = true) {
+  const regex = new RegExp(`${variableName}\\s*:\\s*[^;]+;`);
+
+  frameworkCSS = frameworkCSS.replace(regex, `${variableName}: ${value};`);
+
+  if (refreshPreview) {
+    updatePreview();
+  }
+}
+
+function updateVariable(event) {
+  const input = event.target;
+  const variable = input.dataset.variable;
+  const value = input.value;
+
+  saveThemeVariable(variable, value);
+  updateCssVariable(variable, value);
+
+  const group = input.closest('.editor-group');
+  const preview = group?.querySelector('.color-box');
+
+  if (preview && isColor(value)) {
+    preview.style.background = value;
+  }
+}
+
+copyCssBtn?.addEventListener('click', saveCurrentTheme);
+
+// Palettes
+function applyPalette(paletteName) {
+  const selected = palettes[paletteName];
+
+  if (!selected) return;
+
+  selected.forEach((color, index) => {
+    const variable = `--c${index + 1}`;
+
+    saveThemeVariable(variable, color);
+    updateCssVariable(variable, color, false);
+
+    const input = document.querySelector(`[data-variable="${variable}"]`);
+
+    if (input) {
+      input.value = color;
+
+      const group = input.closest('.editor-group');
+      const preview = group?.querySelector('.color-box');
+
+      if (preview) {
+        preview.style.background = color;
+      }
+    }
+  });
+
+  updatePreview();
+}
+
+function renderPaletteOptions() {
+  if (!paletteSelector) return;
+
+  paletteSelector.innerHTML = '';
+
+  Object.keys(palettes).forEach((key) => {
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className = 'palette-btn';
+    button.dataset.palette = key;
+    button.textContent = key;
+
+    button.addEventListener('click', () => {
+      applyPalette(key);
+      setActivePaletteButton(button);
+    });
+
+    paletteSelector.appendChild(button);
+  });
+}
+
+function setActivePaletteButton(activeButton) {
+  document.querySelectorAll('.palette-btn').forEach((button) => {
+    button.classList.remove('is-active');
+  });
+
+  activeButton.classList.add('is-active');
+}
+
+paletteTitle?.addEventListener('click', () => {
+  paletteSelector?.classList.toggle('hide');
+});
+
+// Init
+async function initApp() {
+  try {
+    frameworkCSS = await loadFrameworkCSS();
+
+    renderPaletteOptions();
+
+    const variables = getRootVariables(frameworkCSS);
+
+    renderEditor(variables);
+    applySavedThemeVariables();
+  } catch (error) {
+    console.error(error);
+    showToast('No se pudo cargar HyQuality.css');
+  }
+
+  require(['vs/editor/editor.main'], function () {
+    window.editor = monaco.editor.create(
+      document.querySelector('#monacoEditor'),
+      {
+        value: loadEditorContent(),
+        language: 'html',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        fontSize: 12,
+        minimap: {
+          enabled: false,
+        },
+        wordWrap: 'on',
+        tabSize: 2,
+        quickSuggestions: {
+          other: true,
+          comments: false,
+          strings: true,
+        },
+        suggestOnTriggerCharacters: true,
+        acceptSuggestionOnEnter: 'on',
+        snippetSuggestions: 'top',
+        autoClosingBrackets: 'always',
+        autoClosingQuotes: 'always',
+        autoIndent: 'full',
+        formatOnPaste: true,
+        formatOnType: true,
+      }
+    );
+
+    registerHtmlSnippets();
+    renderComponents();
+    renderComponentCategoryButtons();
+    updatePreview();
+
+    window.editor.onDidChangeModelContent(() => {
+      saveEditorContent();
+      schedulePreviewUpdate();
+    });
+  });
+}
+
+initApp();
