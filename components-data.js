@@ -50,6 +50,279 @@ const components = [
     </div>
   </div>`,
   },
+
+  {
+    id: 'custom-1779838475334',
+    name: 'App Router basic',
+    category: 'layers',
+    html: `<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini SPA</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL'0, 'wght'300, 'GRAD'-25, 'opsz'20;
+    }
+
+    .hide {
+      transform: translateX(-20000px);
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    [page] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    [page].active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    .btnRouter {
+      position: relative;
+    }
+
+    .btnRouter {
+      transition: color 0.25s ease, transform 0.25s ease;
+    }
+
+    .btnRouter.active  {
+      color: rgb(0, 0, 0);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- COMPONENTS -->
+  
+  <!--app bar-->
+  <template id="topBarComponent">
+    <div class="d-flex bg-c11 w-full items-center pl-2 pr-2 justify-between" style="height: 50px">
+      <div class="d-flex flex-col">
+        <h1 class="fs-12 t-c2 weight-medium mb-0" data-title>App Bar</h1>
+        <p class="weight-light mt-0 fs-15 t-c6" style="margin-top: -6px">
+          AppName
+        </p>
+      </div>
+      <button class="bg-c11 border-none d-flex" toggle=".Menu_MoreVert">
+          <span class="material-symbols-outlined t-c1"> more_vert </span>
+        </button>
+    </div>
+  </template>
+
+  <!--menu vertical-->
+  <template id="menuMoreVertComponent">
+    <div class="Menu_MoreVert d-flex pos-absolute z-200 bg-c11 radius-sm shadow-lg flex-col justify-start items-start hide" style="width: 150px; height: 160px; top: 45px; right: 10px">
+      <div class="d-flex flex-col justify-start items-start p-2 pt-4" toggle=".Menu_MoreVert">
+        <button class="d-flex w-full pb-3  fs-13 border-none items-center ">
+          <span class="material-symbols-outlined pr-3 fs-10"> info </span>
+          About-us
+        </button>
+        <button class="d-flex w-full pb-3 fs-13 border-none  items-center"toggle=".Menu_MoreVert">
+          <span class="material-symbols-outlined pr-3 fs-10"> phone </span>
+          Contacts
+        </button>
+        <button class="d-flex w-full pb-3 fs-13 border-none items-center "toggle=".Menu_MoreVert">
+          <span class="material-symbols-outlined pr-3 fs-10"> more </span>
+          Terminos
+        </button>
+        <button class="d-flex w-full pb-3  fs-13 border-none items-center" toggle=".Menu_MoreVert">
+          <span class="material-symbols-outlined pr-3  fs-10"> add </span>
+          Politicas
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- APP -->
+  <main class="app">
+
+    <!--View1-->
+    <section class="w-full h-screen d-flex flex-col" page="/">
+      <div component="topbar" title="Home"></div>
+      <div component="menuMoreVert"></div>
+       <!--content view-->
+    </section>
+
+     <!--View2-->
+    <section class="w-full h-screen d-flex flex-col" page="/profile">
+      <div component="topbar" title="Profile"></div>
+      <div component="menuMoreVert"></div>
+       <!--content view-->
+    </section>
+
+     <!--View3-->
+    <section class="w-full h-screen d-flex flex-col" page="/settings">
+      <div component="topbar" title="Settings"></div>
+      <div component="menuMoreVert"></div>
+      <!--content view-->
+    </section>
+
+  </main>
+
+  <!-- BOTTOM BAR add the pos-fixed -->
+  <div class="bottombar  bg-c11 d-flex w-full justify-between pl-3 pr-3" style="bottom: 0">
+    <button class="btnRouter t-c5 border-none d-flex flex-col items-center justify-center pt-3 pb-3 w-full"route="/">
+      <span class="material-symbols-outlined"> home </span>
+    </button>
+    <button class="btnRouter t-c5 border-none d-flex flex-col items-center justify-center pt-3 pb-3 w-full" route="/profile">
+      <span class="material-symbols-outlined"> person </span>
+    </button>
+    <button class="btnRouter t-c5 border-none d-flex flex-col items-center justify-center pt-3 pb-3 w-full" route="/settings">
+      <span class="material-symbols-outlined"> settings </span>
+    </button>
+  </div>
+
+  <!--Scrits-->
+  <script>
+  function Router(options = {}) {
+    const pages = document.querySelectorAll('[page]');
+    const routes = document.querySelectorAll('[route]');
+
+    const config = {
+      defaultRoute: '/',
+      useHash: true,
+      ...options,
+    };
+
+    function normalizeRoute(route) {
+      if (!route) return config.defaultRoute;
+
+      if (!route.startsWith('/')) {
+        return '/' + route;
+      }
+
+      return route;
+    }
+
+    function getCurrentRoute() {
+      if (config.useHash) {
+        const hash = location.hash.replace('#', '');
+        return normalizeRoute(hash || config.defaultRoute);
+      }
+
+      return normalizeRoute(location.pathname || config.defaultRoute);
+    }
+
+    function go(route) {
+      const targetRoute = normalizeRoute(route);
+
+      pages.forEach((page) => {
+        const isActive = page.getAttribute('page') === targetRoute;
+        page.classList.toggle('active', isActive);
+      });
+
+      routes.forEach((button) => {
+        const isActive = button.getAttribute('route') === targetRoute;
+        button.classList.toggle('active', isActive);
+      });
+
+      if (config.useHash) {
+        const newHash = '#' + targetRoute;
+
+        if (location.hash !== newHash) {
+          location.hash = newHash;
+        }
+      }
+    }
+
+    routes.forEach((button) => {
+      button.addEventListener('click', () => {
+        const route = button.getAttribute('route');
+        go(route);
+      });
+    });
+
+    window.addEventListener('hashchange', () => {
+      go(getCurrentRoute());
+    });
+
+    go(getCurrentRoute());
+
+    return {
+      go,
+      current: getCurrentRoute,
+    };
+  }
+
+  function renderComponents() {
+    const components = document.querySelectorAll('[component]');
+
+    components.forEach((component) => {
+      const name = component.getAttribute('component');
+
+      if (name === 'topbar') {
+        const template = document.querySelector('#topBarComponent');
+        const clone = template.content.cloneNode(true);
+
+        const title = component.getAttribute('title');
+        const titleElement = clone.querySelector('[data-title]');
+
+        if (titleElement && title) {
+          titleElement.textContent = title;
+        }
+
+        component.replaceWith(clone);
+      }
+
+      if (name === 'menuMoreVert') {
+        const template = document.querySelector('#menuMoreVertComponent');
+        const clone = template.content.cloneNode(true);
+
+        component.replaceWith(clone);
+      }
+    });
+  }
+
+  function initToggle() {
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('[toggle]');
+
+      if (!button) return;
+
+      const selector = button.getAttribute('toggle');
+      const page = button.closest('[page]');
+
+      const target =
+        page?.querySelector(selector) ||
+        document.querySelector(selector);
+
+      if (target) {
+        target.classList.toggle('hide');
+      }
+    });
+  }
+
+  renderComponents();
+
+  const app = Router({
+    defaultRoute: '/',
+    useHash: true,
+  });
+
+  initToggle();
+</script>
+</body>
+
+</html>`,
+  },
 ];
 
 export default components;

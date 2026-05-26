@@ -138,7 +138,7 @@
       </section>
     </main>
 
-    <!-- BOTTOM BAR -->
+    <!-- BOTTOM -->
     <div
       class="bottombar pos-fixed bg-c11 d-flex w-full justify-between pl-3 pr-3"
       style="bottom: 0"
@@ -181,12 +181,14 @@
           if (!route.startsWith('/')) {
             return '/' + route;
           }
+
           return route;
         }
 
         function getCurrentRoute() {
-          if (config.useHash && location.hash !== '#' + targetRoute) {
-            location.hash = '#' + targetRoute;
+          if (config.useHash) {
+            const hash = location.hash.replace('#', '');
+            return normalizeRoute(hash || config.defaultRoute);
           }
 
           return normalizeRoute(location.pathname || config.defaultRoute);
@@ -205,8 +207,12 @@
             button.classList.toggle('active', isActive);
           });
 
-          if (config.useHash && location.hash !== `#${targetRoute}`) {
-            location.hash = targetRoute;
+          if (config.useHash) {
+            const newHash = '#' + targetRoute;
+
+            if (location.hash !== newHash) {
+              location.hash = newHash;
+            }
           }
         }
 
@@ -216,10 +222,13 @@
             go(route);
           });
         });
+
         window.addEventListener('hashchange', () => {
           go(getCurrentRoute());
         });
+
         go(getCurrentRoute());
+
         return {
           go,
           current: getCurrentRoute,
@@ -231,20 +240,25 @@
 
         components.forEach((component) => {
           const name = component.getAttribute('component');
+
           if (name === 'topbar') {
             const template = document.querySelector('#topBarComponent');
             const clone = template.content.cloneNode(true);
+
             const title = component.getAttribute('title');
             const titleElement = clone.querySelector('[data-title]');
+
             if (titleElement && title) {
               titleElement.textContent = title;
             }
+
             component.replaceWith(clone);
           }
 
           if (name === 'menuMoreVert') {
             const template = document.querySelector('#menuMoreVertComponent');
             const clone = template.content.cloneNode(true);
+
             component.replaceWith(clone);
           }
         });
@@ -253,11 +267,15 @@
       function initToggle() {
         document.addEventListener('click', (event) => {
           const button = event.target.closest('[toggle]');
+
           if (!button) return;
+
           const selector = button.getAttribute('toggle');
           const page = button.closest('[page]');
+
           const target =
             page?.querySelector(selector) || document.querySelector(selector);
+
           if (target) {
             target.classList.toggle('hide');
           }

@@ -151,8 +151,9 @@ function saveCurrentTheme() {
 
   localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
 
-  themeEditor?.classList.add('hideTheme');
-  paletteSelector?.classList.add('hide');
+  //themeEditor?.classList.add('hideTheme');
+  document.querySelector('.ThemeEditor').classList.add('hideTheme');
+  paletteSelector?.classList.add('hideTheme');
 
   showToast('Theme guardado');
 }
@@ -646,7 +647,7 @@ function registerHtmlSnippets() {
         {
           label: 'coment',
           kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: '<!-- $1 -->',
+          insertText: '<!--$1-->',
           insertTextRules:
             monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           detail: 'Add comentary',
