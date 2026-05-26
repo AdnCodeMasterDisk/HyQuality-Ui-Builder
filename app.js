@@ -1067,6 +1067,83 @@ paletteTitle?.addEventListener('click', () => {
   paletteSelector?.classList.toggle('hide');
 });
 
+function formatBasicHtml(html) {
+  const protectedScripts = [];
+  const protectedStyles = [];
+
+  // Proteger SCRIPT
+  html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (match) => {
+    const token = `___SCRIPT_${protectedScripts.length}___`;
+
+    protectedScripts.push(match);
+
+    return token;
+  });
+
+  // Proteger STYLE
+  html = html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, (match) => {
+    const token = `___STYLE_${protectedStyles.length}___`;
+
+    protectedStyles.push(match);
+
+    return token;
+  });
+
+  let formatted = '';
+  let indent = 0;
+
+  html = html
+    .replace(/>\s*</g, '><')
+    .replace(/</g, '\n<')
+    .replace(/>/g, '>\n')
+    .trim();
+
+  const lines = html
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  lines.forEach((line) => {
+    const isClosingTag = /^<\/.+>/.test(line);
+
+    const isSelfClosingTag =
+      /\/>$/.test(line) ||
+      /^<(img|input|br|hr|meta|link|area|base|col|embed|source|track|wbr)\b/i.test(
+        line
+      );
+
+    if (isClosingTag) {
+      indent = Math.max(indent - 1, 0);
+    }
+
+    let restoredLine = line;
+
+    restoredLine = restoredLine.replace(
+      /___SCRIPT_(\d+)___/g,
+      (_, index) => protectedScripts[index]
+    );
+
+    restoredLine = restoredLine.replace(
+      /___STYLE_(\d+)___/g,
+      (_, index) => protectedStyles[index]
+    );
+
+    formatted += '  '.repeat(indent) + restoredLine + '\n';
+
+    if (
+      /^<[^/!][^>]*>$/.test(line) &&
+      !isSelfClosingTag &&
+      !line.includes('</') &&
+      !/^___SCRIPT_\d+___$/.test(line) &&
+      !/^___STYLE_\d+___$/.test(line)
+    ) {
+      indent++;
+    }
+  });
+
+  return formatted.trim();
+}
+
 // Init
 async function initApp() {
   try {
@@ -1112,6 +1189,33 @@ async function initApp() {
         formatOnType: true,
       }
     );
+
+    monaco.languages.registerDocumentFormattingEditProvider('html', {
+      provideDocumentFormattingEdits(model) {
+        const code = model.getValue();
+        const formatted = formatBasicHtml(code);
+
+        return [
+          {
+            range: model.getFullModelRange(),
+            text: formatted,
+          },
+        ];
+      },
+    });
+
+    window.editor.addAction({
+      id: 'format-html',
+      label: 'Format HTML',
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1,
+
+      run: async (editor) => {
+        await editor.getAction('editor.action.formatDocument').run();
+
+        showToast('Código formateado');
+      },
+    });
 
     emmetMonaco.emmetHTML(monaco);
     registerHtmlSnippets();
