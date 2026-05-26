@@ -641,7 +641,15 @@ function registerHtmlSnippets() {
           insertText: 'src="$1"',
           insertTextRules:
             monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          detail: 'Crear src',
+          detail: 'Create id',
+        },
+        {
+          label: 'coment',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: '<!-- $1 -->',
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: 'Add comentary',
         },
       ];
 
