@@ -17,7 +17,6 @@ const initialCode = `<!DOCTYPE html>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tittle</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css">
@@ -36,24 +35,20 @@ const initialCode = `<!DOCTYPE html>
   </head>
 
   <body>
-    <h1 class="text-center bg-c2 mb-0 mt-0" style="height: 50px">HiQuality</h1>
+    
   </body>
 </html>`;
 
 // DOM
 const desktopPreview = document.querySelector('#desktopPreview');
 const mobileIframe = document.querySelector('#mobileIframe');
-
 const buttonDownload = document.querySelector('#buttonDownload');
 const buttonCssDownload = document.querySelector('#buttonCssDownload');
-
 const toast = document.querySelector('#toast');
 const toastMessage = document.querySelector('#toastMessage');
-
 const grid = document.querySelector('#componentsGrid');
 const searchInputComponent = document.querySelector('#searchInputComponent');
 const categoryButtons = document.querySelectorAll('.category-btn');
-
 const themeEditor = document.querySelector('#themeEditor');
 const paletteSelector = document.querySelector('#paletteSelector');
 const copyCssBtn = document.querySelector('#copyCssBtn');
@@ -586,6 +581,14 @@ function registerHtmlSnippets() {
           insertTextRules:
             monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           detail: 'Crear style',
+        },
+        {
+          label: 'mess',
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: '<!--"$1"-->',
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: 'Crear messaje',
         },
         {
           label: 'id',
