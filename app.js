@@ -484,7 +484,7 @@ function registerHtmlSnippets() {
         ...Array.from({ length: 17 }, (_, i) => `mr-${i}`),
 
         'mx-auto',
-
+        'hide-mobile',
         'text-left',
         'text-center',
         'text-right',
