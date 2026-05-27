@@ -1459,6 +1459,10 @@
   .fs-16 {
     font-size: var(--fsm-16);
   }
+
+  .hide-mobile {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1517,6 +1521,6 @@ a {
   text-decoration: none;
 }
 
-button{
+button {
   background: none;
 }
